@@ -42,10 +42,23 @@ jit0-x64: tests/jit0-x64.c
 jit-x64: dynasm-driver.c jit-x64.h
 	$(CC) $(CFLAGS) -o $@ -DJIT=\"jit-x64.h\" \
 		dynasm-driver.c
+
+jit-x64_optimize: dynasm-driver.c jit-x64_optimize.h
+	$(CC) $(CFLAGS) -o $@ -DJIT=\"jit-x64_optimize.h\" \
+		dynasm-driver.c
+
 jit-x64.h: jit-x64.dasc
 	        $(LUA) dynasm/dynasm.lua -o $@ jit-x64.dasc
+
+jit-x64_optimize.h: jit-x64_optimize.dasc
+	        $(LUA) dynasm/dynasm.lua -o $@ jit-x64_optimize.dasc
+
 run-jit-x64: jit-x64
 	./jit-x64 progs/hello.b && objdump -D -b binary \
+		-mi386 -Mx86-64 /tmp/jitcode
+
+run-jit-x64_optimize: jit-x64_optimize
+	./jit-x64_optimize progs/hello.b && objdump -D -b binary \
 		-mi386 -Mx86-64 /tmp/jitcode
 
 jit0-arm: tests/jit0-arm.c
@@ -61,6 +74,12 @@ run-jit-arm: jit-arm
 	$(CROSS_COMPILE)objdump -D -b binary -marm /tmp/jitcode
 
 bench-jit-x64: jit-x64
+	@echo
+	@echo Executing Brainf*ck benchmark suite. Be patient.
+	@echo
+	@env PATH='.:${PATH}' BF_RUN='$<' tests/bench.py
+
+bench-jit-x64_optimize: jit-x64_optimize
 	@echo
 	@echo Executing Brainf*ck benchmark suite. Be patient.
 	@echo
